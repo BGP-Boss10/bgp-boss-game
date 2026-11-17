@@ -64,6 +64,14 @@ expectOnly('wrong-evidence-bgp', (d) => { d.levels[2].rounds[0].host = { ip: '10
 expectOnly('bgp-full-tie', (d) => { d.levels[2].rounds[0].paths = FULL_TIE().paths; }, 'bgp-full-tie', 'levels[2].rounds[0].paths');
 expectOnly('bgp-med-cross-as', (d) => { d.levels[2].rounds[0].paths = MED_CROSS_AS().paths; }, 'bgp-med-cross-as', 'levels[2].rounds[0].paths');
 
+// Feature 002 presentation fields (specs/002-adventure-presentation/data-model.md)
+expectOnly('unknown-art', (d) => { d.levels[0].rounds[0].art = 'dragon'; }, 'unknown-art', 'levels[0].rounds[0].art');
+expectOnly('missing-art', (d) => { delete d.levels[0].rounds[0].art; }, 'missing-field', 'levels[0].rounds[0].art');
+expectOnly('boss-wrong-type', (d) => { d.levels[0].rounds[1].boss = 'yes'; }, 'wrong-type', 'levels[0].rounds[1].boss');
+expectOnly('unknown-scene', (d) => { d.levels[1].scene = 'swamp'; }, 'unknown-scene', 'levels[1].scene');
+expectOnly('missing-scene', (d) => { delete d.levels[1].scene; }, 'missing-field', 'levels[1].scene');
+expectOnly('diagnosis-move-missing', (d) => { delete d.diagnoses[0].move; }, 'missing-field', 'diagnoses[0].move');
+
 // The shipped content must validate cleanly.
 test('content-shipped-levels-json-valid', async () => {
   const doc = await loadJson('../data/levels.json', import.meta.url);

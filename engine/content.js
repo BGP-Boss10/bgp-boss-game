@@ -13,6 +13,11 @@ const PATH_IDS = ['A', 'B', 'C'];
 const ORIGINS = ['igp', 'egp', 'incomplete'];
 const UINT32_MAX = 4294967295;
 
+// Feature 002 presentation IDs (specs/002-adventure-presentation/data-model.md).
+// Every ID here must have matching art in ui/art.js (tests/art.test.js).
+export const ART_IDS = ['imp', 'sprite', 'goblin', 'troll', 'wraith', 'mimic'];
+export const SCENE_IDS = ['help-desk-gate', 'walled-towns', 'bgp-citadel'];
+
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isText = (v) => typeof v === 'string' && v.trim().length > 0;
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -162,6 +167,11 @@ function validateRound(c, level, round, path, ctx) {
   c.text(round, 'monster', path, rid);
   c.text(round, 'ticket', path, rid);
 
+  // 002 data-model.md Round.art (required) and Round.boss (optional boolean)
+  if (!('art' in round)) c.add('missing-field', `${path}.art`, rid);
+  else if (!ART_IDS.includes(round.art)) c.add('unknown-art', `${path}.art`, rid);
+  if ('boss' in round && typeof round.boss !== 'boolean') c.add('wrong-type', `${path}.boss`, rid);
+
   // data-model.md Round.hints, Round.solution
   if (!isObject(round.hints) || !isText(round.hints.method) || !isText(round.hints.workedStep)) {
     c.add('hints-shape', `${path}.hints`, rid);
@@ -216,6 +226,9 @@ function validateLevel(c, level, path, ctx) {
   else if (!RULE_IDS.includes(level.rule)) c.add('unknown-rule', `${path}.rule`);
   c.text(level, 'rank', path);
   c.text(level, 'promotesTo', path);
+  // 002 data-model.md Level.scene
+  if (!('scene' in level)) c.add('missing-field', `${path}.scene`);
+  else if (!SCENE_IDS.includes(level.scene)) c.add('unknown-scene', `${path}.scene`);
   c.field(level, 'phase', path, undefined, (v) => PHASES.includes(v));
   c.field(level, 'outcome', path, undefined, (v) => OUTCOMES.includes(v));
 
@@ -270,6 +283,7 @@ export function validateContent(doc, options = {}) {
         seen.add(d.id);
       }
       c.text(d, 'label', p);
+      c.text(d, 'move', p); // 002 data-model.md Diagnosis.move
     });
     const order = doc.diagnoses.map((d) => d && d.id).join(',');
     if (doc.diagnoses.length !== 3 || (seen.size === 3 && order !== HOST_CHOICE_IDS.join(','))) {

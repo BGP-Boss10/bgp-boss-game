@@ -13,6 +13,7 @@ export function hostRound(id, ip, mask, gateway, expected, wrongCodes) {
     id,
     monster: `Monster ${id}`,
     ticket: `Ticket ${id}`,
+    art: 'imp',
     host: { ip, mask, gateway },
     hints: { method: 'Method hint.', workedStep: 'Worked step.' },
     solution: 'Worked solution.',
@@ -42,6 +43,7 @@ export function bgpRound(id, paths, expected, wrongCodes) {
     id,
     monster: `Monster ${id}`,
     ticket: `Ticket ${id}`,
+    art: 'wraith',
     prefix: '203.0.113.0/24',
     paths,
     hints: { method: 'Method hint.', workedStep: 'Worked step.' },
@@ -100,11 +102,13 @@ export const MED_CROSS_AS = () => bgpRound('BX', [
 
 // --- A minimal valid document ----------------------------------------------
 
-function level(id, rule, rank, promotesTo, phase, outcome, rounds) {
+function level(id, rule, rank, promotesTo, phase, outcome, rounds, scene) {
+  rounds[rounds.length - 1].boss = true;
   return {
     id,
     title: `Level ${id}`,
     rule,
+    scene,
     rank,
     promotesTo,
     phase,
@@ -118,15 +122,15 @@ export function validDoc() {
   return {
     schemaVersion: 1,
     diagnoses: [
-      { id: 'no-lease', label: 'No DHCP lease: the host self-assigned a 169.254.x.x address' },
-      { id: 'gateway-off-subnet', label: "Default gateway is outside the host's subnet" },
-      { id: 'config-valid', label: 'Host IP settings are valid; escalate to the next check' },
+      { id: 'no-lease', move: 'Lease Lance', label: 'No DHCP lease: the host self-assigned a 169.254.x.x address' },
+      { id: 'gateway-off-subnet', move: 'Outer-Gate Strike', label: "Default gateway is outside the host's subnet" },
+      { id: 'config-valid', move: 'All-Clear Ward', label: 'Host IP settings are valid; escalate to the next check' },
     ],
     sources: [{ ...SOURCE }],
     levels: [
-      level('L1', 'host-config', 'Service Desk (T1)', 'NOC Engineer (T2)', 'foundation', 'LO1', [L1R1(), L1R2()]),
-      level('L2', 'host-config', 'NOC Engineer (T2)', 'Network Engineer (T3)', 'application', 'LO2', [L2R1(), L2R2()]),
-      level('L3', 'bgp-best-path', 'Network Engineer (T3)', 'Senior Network Engineer (T4)', 'transfer', 'LO3', [L3R1(), L3R2()]),
+      level('L1', 'host-config', 'Service Desk (T1)', 'NOC Engineer (T2)', 'foundation', 'LO1', [L1R1(), L1R2()], 'help-desk-gate'),
+      level('L2', 'host-config', 'NOC Engineer (T2)', 'Network Engineer (T3)', 'application', 'LO2', [L2R1(), L2R2()], 'walled-towns'),
+      level('L3', 'bgp-best-path', 'Network Engineer (T3)', 'Senior Network Engineer (T4)', 'transfer', 'LO3', [L3R1(), L3R2()], 'bgp-citadel'),
     ],
   };
 }

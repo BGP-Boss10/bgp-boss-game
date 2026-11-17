@@ -100,8 +100,10 @@ code { font-family: var(--mono); font-size: 0.92em; }
   border-radius: 4px;
 }
 
-[tabindex="-1"]:focus { outline: none; }
-[tabindex="-1"]:focus-visible { outline: 3px solid var(--focus); }
+/* Headings receive focus programmatically after a view change; they are not controls,
+   so they get a quiet marker instead of the control focus ring. */
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible { outline: none; }
+h2[tabindex="-1"]:focus-visible { text-decoration: underline; text-decoration-color: var(--focus); text-decoration-thickness: 3px; text-underline-offset: 6px; }
 
 .visually-hidden {
   position: absolute !important;
@@ -447,3 +449,215 @@ dialog h2 { margin-top: 0; }
   from { transform: scale(0.98); }
   to { transform: none; }
 }
+
+/* ================================================================ adventure (feature 002) */
+
+.log-heading { font-size: 1rem; margin: 0 0 0.5rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.explanation-wrap:has(.explanation:empty) .log-heading { display: none; }
+
+/* header portrait */
+.rank { display: flex; align-items: center; gap: 0.55rem; }
+.portrait {
+  width: 44px; height: 44px; flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: radial-gradient(circle at 50% 35%, #fff6dc, #e9d7ad);
+  overflow: hidden;
+}
+.portrait svg { width: 100%; height: 100%; display: block; }
+
+/* battle stage */
+.battle { margin: 0 0 1.1rem; }
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  min-height: 230px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid #2a2620;
+  box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.2), var(--shadow);
+  background: #2a2440;
+  isolation: isolate;
+}
+.stage-scene, .stage-scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hud {
+  position: absolute; inset: 0.6rem 0.6rem auto 0.6rem; z-index: 3;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;
+  pointer-events: none;
+}
+.plate {
+  background: rgb(255 250 240 / 0.94);
+  color: #2a2620;
+  border: 2px solid #2a2620;
+  border-radius: 10px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.35);
+  max-width: 48%;
+}
+.plate strong { display: block; }
+.plate-sub { color: #5f574b; font-size: 0.78rem; }
+.plate-monster { min-width: 11rem; }
+.plate-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.1rem 0.35rem; }
+.plate-title strong { display: inline; }
+.boss-tag {
+  background: #8b1e3f; color: #fff;
+  font-weight: 800; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.05rem 0.4rem; border-radius: 4px;
+}
+.hp { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; }
+.hp-label { font: 700 0.72rem var(--mono); min-width: 3.8em; }
+.hp-track {
+  flex: 1; min-width: 70px; height: 11px;
+  background: #3a2b2b; border: 2px solid #2a2620; border-radius: 6px; overflow: hidden;
+}
+.hp-fill { height: 100%; background: linear-gradient(#9be7a8, #1d6b34); }
+
+.combatant { position: absolute; bottom: 3%; z-index: 2; }
+.hero-slot { left: 6%; width: 22%; }
+.monster-slot { right: 7%; width: 27%; }
+.is-boss .monster-slot { right: 4%; width: 33%; }
+.combatant svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.25)); }
+.outcome-defeated .monster-slot svg {
+  transform: rotate(10deg) translateY(12%);
+  transform-origin: 50% 100%;
+  filter: grayscale(0.9) brightness(0.85);
+  opacity: 0.6;
+}
+
+.fx {
+  position: absolute; right: 9%; top: 24%; width: 28%; z-index: 4;
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  pointer-events: none;
+}
+.fx svg { width: 50%; height: auto; }
+.fx-text {
+  font: 900 clamp(1rem, 3.2vw, 1.9rem)/1 var(--font);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  -webkit-text-stroke: 2px #2a2620; paint-order: stroke fill;
+  text-shadow: 0 3px 0 #2a2620;
+}
+.fx-hit { color: #ffd54a; }
+.fx-block { color: #bfe3f7; }
+
+.battle-caption {
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.8rem;
+  border-left: 5px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0 8px 8px 0;
+  font-weight: 600;
+}
+.battle-caption.outcome-defeated { border-left-color: var(--ok); }
+.battle-caption.outcome-blocked { border-left-color: var(--bad); }
+.battle-caption.outcome-need-move { border-left-color: var(--info); }
+
+/* ticket as a parchment scroll */
+.round .ticket-card {
+  background: linear-gradient(#f6ecd3, #efe0bd);
+  color: #2a2620;
+  border: 2px solid #a88c5a;
+  border-radius: 6px 6px 14px 14px;
+}
+.round .ticket-card .ticket-from { color: #6b5a3a; }
+.round .ticket-card.is-defeated { border-color: var(--ok); }
+
+/* move menu */
+.battle-menu {
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem;
+}
+.moves { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.choices.moves legend { font-size: 1.05rem; }
+.move {
+  background: linear-gradient(var(--surface), var(--surface-2));
+  box-shadow: 0 3px 0 var(--border);
+  align-items: center;
+}
+.move:has(input:checked) { border-color: var(--gold); box-shadow: 0 3px 0 var(--gold); }
+.move:hover:has(input:not(:disabled)) { border-color: var(--accent); }
+.move label { display: flex; gap: 0.65rem; align-items: center; }
+.move-icon {
+  flex: none; width: 2.1rem; height: 2.1rem; border-radius: 9px;
+  background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center;
+}
+.move-icon svg { width: 1.3rem; height: 1.3rem; display: block; }
+.move-text { display: flex; flex-direction: column; min-width: 0; }
+.move-name { font-size: 1rem; letter-spacing: 0.01em; }
+.move-label { font-size: 0.88rem; color: var(--muted); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; }
+.btn-icon { display: inline-flex; }
+.btn-icon svg { width: 1.15em; height: 1.15em; display: block; }
+.btn-attack { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn-attack:hover:not(:disabled) { background: var(--bad); filter: brightness(1.1); }
+.btn-item { border-color: var(--gold); color: var(--gold); }
+
+/* map of Networklandia */
+.world-map { margin: 0.5rem 0 1rem; }
+.map-caption { font-weight: 700; margin-bottom: 0.4rem; }
+.map-svg { width: 100%; height: auto; display: block; }
+.map-label { font: 700 15px var(--font); fill: #2a2620; paint-order: stroke; stroke: #efe2c2; stroke-width: 4px; }
+.map-locked .map-node-art { opacity: 0.45; filter: grayscale(1); }
+.map-list { margin: 0.5rem 0 0; padding-left: 1.4rem; font-size: 0.92rem; }
+.map-item-current strong { color: var(--focus); }
+.map-item-cleared strong { color: var(--ok); }
+
+/* victory scenes */
+.victory {
+  display: flex; align-items: center; gap: 1rem;
+  background: radial-gradient(circle at 15% 60%, rgb(230 180 80 / 0.4), transparent 55%), var(--surface-2);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.victory-hero { width: 120px; flex: none; }
+.victory-hero svg { width: 100%; height: auto; display: block; }
+.victory-text p { margin: 0.2rem 0; }
+
+@media (max-width: 480px) {
+  .stage { aspect-ratio: 4 / 3; min-height: 0; }
+  .plate { font-size: 0.72rem; padding: 0.25rem 0.45rem; }
+  .plate-sub { font-size: 0.66rem; }
+  .plate-monster { min-width: 0; }
+  .hp-track { min-width: 40px; }
+  .hero-slot { width: 30%; left: 4%; }
+  .monster-slot { width: 36%; right: 4%; }
+  .is-boss .monster-slot { width: 42%; right: 2%; }
+  .fx { width: 40%; right: 4%; top: 30%; }
+  .moves { grid-template-columns: 1fr; }
+  .victory { flex-direction: column; text-align: center; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stage .monster-slot svg { animation: nq-bob 2.6s ease-in-out infinite; }
+  .stage .hero-slot svg { animation: nq-breathe 3.2s ease-in-out infinite; }
+  .stage.outcome-defeated .monster-slot svg { animation: none; }
+  .stage.fresh.outcome-blocked .hero-slot svg,
+  .stage.fresh.outcome-defeated .hero-slot svg { animation: nq-lunge 520ms ease-out; }
+  .stage.fresh.outcome-defeated .monster-slot svg { animation: nq-defeat 700ms ease-in 220ms both; }
+  .stage.fresh.outcome-blocked .monster-slot svg { animation: nq-shake 450ms ease-in-out 220ms; }
+  .stage.fresh .fx { animation: nq-pop 480ms ease-out 200ms both; }
+  .stage.fresh.outcome-defeated .hp-fill { animation: nq-drain 600ms ease-in 260ms both; }
+  .map-pulse { animation: nq-spin 8s linear infinite; transform-box: fill-box; transform-origin: center; }
+  .victory-hero svg { animation: nq-cheer 900ms ease-out 1; }
+}
+
+@keyframes nq-bob { 50% { transform: translateY(-6px); } }
+@keyframes nq-breathe { 50% { transform: translateY(-2px); } }
+@keyframes nq-lunge { 40% { transform: translateX(55%); } 100% { transform: none; } }
+@keyframes nq-shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+@keyframes nq-defeat {
+  0% { transform: none; filter: none; opacity: 1; }
+  25% { transform: translateX(8px); filter: brightness(2.2); opacity: 1; }
+  100% { transform: rotate(10deg) translateY(12%); filter: grayscale(0.9) brightness(0.85); opacity: 0.6; }
+}
+@keyframes nq-pop { 0% { transform: scale(0.3); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes nq-drain { from { width: 100%; } to { width: 0; } }
+@keyframes nq-spin { to { transform: rotate(360deg); } }
+@keyframes nq-cheer { 30% { transform: translateY(-12px); } 60% { transform: none; } }

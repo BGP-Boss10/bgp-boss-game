@@ -362,3 +362,7 @@ actually ships (Constitution VII).
   - **Round count:** the status bar shows "Round x of N", with N taken from the content, so a trial round (SC-008) needs no code change. `validateContent` accepts `levelCount`/`roundsPerLevel` options for that trial; the shipped game uses the defaults (3 and 2).
   - **Help display:** the state stores `helpShown` (the help level displayed, which is UI only) separately from `Round record.assistance` (the help level recorded while unresolved).
 - **Verification results** are recorded in README.md. T038's human keyboard-only run is recorded there as **Not run**; only automated focus checks were done. T039's source check was AI-assisted and still needs a human teammate review.
+- **Delivered by feature 002:** the "Experience direction" from StarterKit/SPEC.md (ticket monsters
+  in Networklandia, a memorable moment per answer) is delivered by
+  `specs/002-adventure-presentation`. That feature adds battle scenes, move selection, bosses, a
+  world map and rank gear, and leaves this feature's rules and content unchanged.

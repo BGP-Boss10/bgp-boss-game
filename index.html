@@ -14,7 +14,10 @@
       <h1>Network-Quest</h1>
       <p class="tagline">Tickets of Networklandia</p>
     </div>
-    <p class="rank" id="rank" aria-live="off">Rank: <strong id="rank-title">Service Desk (T1)</strong></p>
+    <p class="rank" id="rank" aria-live="off">
+      <span class="portrait" id="rank-portrait" aria-hidden="true"></span>
+      <span>Rank: <strong id="rank-title">Service Desk (T1)</strong></span>
+    </p>
     <button type="button" class="btn btn-quiet" id="restart-button" data-action="restart">Restart</button>
   </header>
 
@@ -23,7 +26,7 @@
       <p>Loading tickets…</p>
     </div>
     <section class="explanation-wrap" aria-labelledby="explanation-heading">
-      <h2 id="explanation-heading" class="visually-hidden">Explanation</h2>
+      <h2 id="explanation-heading" class="log-heading">Battle log</h2>
       <div id="explanation" class="explanation" aria-live="polite" aria-atomic="true"></div>
     </section>
   </main>

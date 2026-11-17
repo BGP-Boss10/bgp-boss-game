@@ -9,6 +9,7 @@ const app = {
   announced: null,
   lastKey: undefined,
   focusId: null,
+  lastMove: null,
   reload: load,
 };
 

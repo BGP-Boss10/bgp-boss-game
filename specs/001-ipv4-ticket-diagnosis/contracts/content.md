@@ -86,6 +86,7 @@ validateContent(doc) → { ok: true } | { ok: false, errors: [ { code, path, rou
 | `hints-shape` / `solution-empty` | Hints not `{method, workedStep}` with non-empty strings, or empty solution |
 | `feedback-missing` | No wording for `correct` or for a reason code the evaluator can produce in this round (checked by evaluating every choice) |
 | `author-disagrees` | `authorExpects` ≠ the evaluator's `expected`. Never resolved in the author's favour |
+| `unknown-art` / `unknown-scene` | (Feature 002) `Round.art` or `Level.scene` is not a known art/scene ID; see `specs/002-adventure-presentation/data-model.md` |
 
 ## Test obligations
 

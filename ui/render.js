@@ -3,6 +3,9 @@
 import { h } from './dom.js';
 import { buildRuler } from './ruler.js';
 import { buildPathTable, buildTrace } from './paths.js';
+import { buildBattle, moveName, rankTier } from './battle.js';
+import { buildMap } from './map.js';
+import { heroSvg, icon } from './art.js';
 import { explain } from '../engine/feedback.js';
 import { choiceIdsFor } from '../engine/evaluate.js';
 import { decideBgp } from '../engine/rule-bgp.js';
@@ -59,8 +62,9 @@ function briefingView(s) {
   const level = currentLevel(s);
   const n = s.levelIndex + 1;
   return h('section', { class: 'panel briefing' },
-    h('p', { class: 'eyebrow' }, `Level ${n} of ${s.doc.levels.length} · Briefing`),
+    h('p', { class: 'eyebrow' }, `Level ${n} of ${s.doc.levels.length} · Quest briefing`),
     heading(`Level ${n}: ${level.title}`),
+    buildMap(s),
     h('p', { class: 'role-line' }, 'You are playing as ', h('strong', {}, level.rank), '.'),
     h('p', {}, level.briefing.text),
     h('h3', {}, 'Worked example'),
@@ -71,7 +75,7 @@ function briefingView(s) {
     sourceList(s.doc, level.briefing.sourceIds),
     h('div', { class: 'actions' },
       h('button', { type: 'button', class: 'btn btn-primary', id: 'start-button', dataset: { action: 'start' } },
-        `Start Level ${n}`)));
+        `Begin Level ${n}`)));
 }
 
 // ---------------------------------------------------------------- round view
@@ -94,20 +98,27 @@ function choiceLabel(s, level, round, id) {
 
 function choicesFieldset(s, level, round, resolved) {
   const legend = level.rule === 'host-config'
-    ? 'Which diagnosis does the evidence prove?'
-    : 'Which path will the router select?';
-  return h('fieldset', { class: 'choices' },
+    ? 'Choose your move: which diagnosis does the evidence prove?'
+    : 'Choose your move: which path will the router select?';
+  return h('fieldset', { class: 'choices moves' },
     h('legend', {}, legend),
     choiceIdsFor(level, round).map((id) => {
       const inputId = `choice-${id}`;
-      return h('div', { class: 'choice' },
+      const iconName = level.rule === 'host-config' ? id : 'path';
+      return h('div', { class: 'choice move' },
         h('input', {
           type: 'radio', name: 'choice', id: inputId, value: id,
           checked: s.selection === id, disabled: resolved,
         }),
-        h('label', { for: inputId }, choiceLabel(s, level, round, id)));
+        h('label', { for: inputId },
+          h('span', { class: 'move-icon' }, icon(iconName)),
+          h('span', { class: 'move-text' },
+            h('strong', { class: 'move-name' }, moveName(s, level, id)),
+            h('span', { class: 'move-label' }, choiceLabel(s, level, round, id)))));
     }));
 }
+
+const withIcon = (name, text) => [h('span', { class: 'btn-icon' }, icon(name)), text];
 
 function helpPanel(s, round) {
   const shown = s.helpShown[round.id] ?? 'none';
@@ -121,7 +132,7 @@ function helpPanel(s, round) {
       rank >= 3 ? [h('dt', {}, 'Worked solution'), h('dd', {}, round.solution)] : null));
 }
 
-function roundView(s) {
+function roundView(s, opts) {
   const level = currentLevel(s);
   const round = currentRound(s);
   const record = currentRecord(s);
@@ -136,35 +147,45 @@ function roundView(s) {
 
   return h('section', { class: 'panel round' },
     h('p', { class: 'eyebrow' }, `Level ${s.levelIndex + 1}: ${level.title}`),
-    heading(`Ticket ${s.roundIndex + 1}: ${round.monster}`),
+    heading(`Battle ${s.roundIndex + 1}: ${round.monster}`),
     h('ul', { class: 'status-bar', 'aria-label': 'Progress' },
       h('li', {}, 'Rank: ', h('strong', {}, currentRank(s))),
       h('li', {}, `Round ${s.roundIndex + 1} of ${level.rounds.length}`),
       h('li', {}, `Attempts: ${record.attempts}`),
       h('li', {}, `Help used: ${HELP_LABEL[record.assistance]}`)),
+    buildBattle(s, opts),
     h('article', { class: `ticket-card ${resolved ? 'is-defeated' : ''}` },
-      h('p', { class: 'ticket-from' }, 'Ticket from a user'),
+      h('p', { class: 'ticket-from' }, `Ticket carried by ${round.monster}`),
       h('blockquote', { class: 'ticket-text' }, h('p', {}, round.ticket)),
       h('p', { class: `ticket-status ${ticketStatus.cls}` }, ticketStatus.text)),
     level.rule === 'host-config' ? ipconfigCard(round) : buildPathTable(round),
-    h('form', { id: 'answer-form', class: 'answer-form', novalidate: true },
+    h('form', { id: 'answer-form', class: 'answer-form battle-menu', novalidate: true },
       choicesFieldset(s, level, round, resolved),
-      h('div', { class: 'actions' },
-        h('button', { type: 'submit', class: 'btn btn-primary', id: 'submit-button', disabled: resolved }, 'Submit'),
+      h('div', { class: 'actions battle-actions' },
+        h('button', { type: 'submit', class: 'btn btn-primary btn-attack', id: 'submit-button', disabled: resolved },
+          withIcon('attack', 'Use move')),
         h('button', {
-          type: 'button', class: 'btn', id: 'hint-button', dataset: { action: 'hint' }, disabled: hintLevel === null,
-        }, hintLevel === 'worked-step' ? 'Next hint' : 'Hint'),
+          type: 'button', class: 'btn btn-item', id: 'hint-button', dataset: { action: 'hint' }, disabled: hintLevel === null,
+        }, withIcon('scout', hintLevel === 'worked-step' ? "Scout's next hint" : "Scout's hint")),
         h('button', {
-          type: 'button', class: 'btn', id: 'solution-button', dataset: { action: 'solution' }, disabled: solutionShown,
-        }, 'Show solution'),
+          type: 'button', class: 'btn btn-item', id: 'solution-button', dataset: { action: 'solution' }, disabled: solutionShown,
+        }, withIcon('scroll', "Sage's scroll")),
         h('button', {
           type: 'button', class: 'btn btn-next', id: 'next-button', dataset: { action: 'next' }, disabled: !resolved,
-        }, s.roundIndex < level.rounds.length - 1 ? 'Next ticket' : 'Finish level'))),
+        }, withIcon('next', s.roundIndex < level.rounds.length - 1 ? 'Next battle' : 'Finish level')))),
     helpPanel(s, round),
     reveal);
 }
 
 // ---------------------------------------------------------------- summaries
+
+const GEAR_LINES = {
+  1: 'NetworkSerf wears the Service Desk tunic.',
+  2: 'New gear: the NOC headset.',
+  3: "New gear: the Network Engineer's cape.",
+  4: 'New gear: the Senior Network Engineer crown.',
+};
+const gearLine = (tier) => GEAR_LINES[tier] ?? '';
 
 function levelSummaryView(s) {
   const stats = levelStats(s, s.levelIndex);
@@ -172,7 +193,11 @@ function levelSummaryView(s) {
   return h('section', { class: 'panel summary' },
     h('p', { class: 'eyebrow' }, `Level ${s.levelIndex + 1} complete`),
     heading(`${stats.title}: cleared`),
-    h('p', { class: 'promotion' }, '🏅 Promoted to ', h('strong', {}, stats.promotesTo)),
+    h('div', { class: 'victory' },
+      h('div', { class: `victory-hero hero-tier-${rankTier(s)}` }, heroSvg(rankTier(s))),
+      h('div', { class: 'victory-text' },
+        h('p', { class: 'promotion' }, 'Promoted to ', h('strong', {}, stats.promotesTo), '!'),
+        h('p', { class: 'muted' }, gearLine(rankTier(s))))),
     h('div', { class: 'table-region', role: 'region', 'aria-label': 'Tickets in this level', tabindex: '0' },
       h('table', { class: 'summary-table' },
         h('caption', {}, 'Your tickets in this level'),
@@ -193,7 +218,12 @@ function sessionSummaryView(s) {
   return h('section', { class: 'panel summary' },
     h('p', { class: 'eyebrow' }, 'Session complete'),
     heading('Session summary'),
-    h('p', { class: 'promotion' }, '🏆 NetworkSerf is now ', h('strong', {}, currentRank(s)), '.'),
+    h('div', { class: 'victory' },
+      h('div', { class: `victory-hero hero-tier-${rankTier(s)}` }, heroSvg(rankTier(s))),
+      h('div', { class: 'victory-text' },
+        h('p', { class: 'promotion' }, 'Quest complete! NetworkSerf is now ', h('strong', {}, currentRank(s)), '.'),
+        h('p', { class: 'muted' }, gearLine(rankTier(s))))),
+    buildMap(s, { allCleared: true }),
     h('div', { class: 'table-region', role: 'region', 'aria-label': 'Results by level', tabindex: '0' },
       h('table', { class: 'summary-table' },
         h('caption', {}, 'Results by level'),
@@ -230,10 +260,10 @@ export function viewKey(s) {
   return `${s.view}:${s.levelIndex}:${s.view === 'round' ? s.roundIndex : '-'}`;
 }
 
-export function buildView(s) {
+export function buildView(s, opts = {}) {
   switch (s.view) {
     case 'briefing': return briefingView(s);
-    case 'round': return roundView(s);
+    case 'round': return roundView(s, opts);
     case 'level-summary': return levelSummaryView(s);
     case 'session-summary': return sessionSummaryView(s);
     default: return loadingView();

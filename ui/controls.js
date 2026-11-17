@@ -1,5 +1,7 @@
 // Input events, painting, focus management, and the Restart dialog.
 import { buildView, explanationContent, viewKey } from './render.js';
+import { rankTier } from './battle.js';
+import { heroSvg } from './art.js';
 import {
   start, select, submit, help, next, nextHintLevel, currentRecord, currentRank,
   requestRestart, cancelRestart, confirmRestart,
@@ -13,13 +15,23 @@ export function paint(app) {
   const dialog = document.getElementById('restart-dialog');
   const activeId = document.activeElement && document.activeElement.id;
 
-  if (s) document.getElementById('rank-title').textContent = currentRank(s);
+  if (s) {
+    document.getElementById('rank-title').textContent = currentRank(s);
+    const tier = String(rankTier(s));
+    const portrait = document.getElementById('rank-portrait');
+    if (portrait.dataset.tier !== tier) {
+      portrait.replaceChildren(heroSvg(Number(tier), { portrait: true }));
+      portrait.dataset.tier = tier;
+    }
+  }
   document.getElementById('restart-button').disabled = !s;
 
-  view.replaceChildren(buildView(s));
+  // Effects play only on the paint that first shows a new result (feature 002 AP-005).
+  const result = s && s.view === 'round' ? s.lastResult : null;
+  const fresh = result !== null && result !== app.announced;
+  view.replaceChildren(buildView(s, { fresh, lastMove: app.lastMove }));
 
   // Live region: replace contents only when there is a new result to announce.
-  const result = s && s.view === 'round' ? s.lastResult : null;
   if (result !== app.announced) {
     explanation.replaceChildren(...explanationContent(s));
     app.announced = result;
@@ -101,6 +113,7 @@ export function bind(app) {
     event.preventDefault();
     const s = app.session;
     if (!s) return;
+    if (!currentRecord(s).resolved) app.lastMove = s.selection;
     submit(s);
     // After a correct answer Submit becomes disabled, so move focus to Next.
     app.focusId = currentRecord(s).resolved ? 'next-button' : 'submit-button';

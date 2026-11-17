@@ -80,9 +80,21 @@
       check('L1R1 opens and focus moves to its heading', heading().includes('The Lonely Link Imp') && focused() === 'view-heading', `${heading()} / ${focused()}`);
       check('ipconfig shows mask with /prefix and no gateway', text('.ipconfig').includes('255.255.0.0 (/16)') && text('.ipconfig').includes('(none)'));
 
+      // Feature 002: battle scene and move menu.
+      const stage = () => $('.stage');
+      const caption = () => text('#battle-caption');
+      check('battle stage shows the monster and full health', !!stage() && text('.plate-monster').includes('The Lonely Link Imp') && text('.hp-label') === 'HP 100', text('.plate-monster'));
+      check('battle art is decorative (aria-hidden)', Array.from(doc().querySelectorAll('.stage svg')).every((el) => el.closest('[aria-hidden="true"]')));
+      check('caption states the fighters', caption().includes('NetworkSerf faces The Lonely Link Imp'), caption());
+      check('moves show move names with exact diagnosis labels', text('.moves').includes('Lease Lance') && text('.moves').includes('No DHCP lease: the host self-assigned a 169.254.x.x address') && text('.moves').includes('All-Clear Ward'), text('.moves'));
+      check('first battle is not a boss', !$('.boss-tag'));
+      check('hero starts at gear tier 1', $('#rank-portrait svg').dataset.tier === '1' && $('.hero-slot svg').dataset.tier === '1');
+      check('Use move button present', text('#submit-button') === 'Use move', text('#submit-button'));
+
       await submit();
       check('empty submit gives guidance', explanation().includes('Choose one option, then Submit.'), explanation());
       check('empty submit is not an attempt', statusBar().includes('Attempts: 0'), statusBar());
+      check('caption asks for a move', caption().includes('Choose a move first'), caption());
 
       await choose('config-valid');
       check('selection keeps focus on the chosen radio', focused() === 'choice-config-valid', focused());
@@ -91,12 +103,16 @@
       check('wrong answer names the misconception', explanation().includes("Having an address isn't the same as having a lease"));
       check('wrong answer counts one attempt', statusBar().includes('Attempts: 1'), statusBar());
       check('Next disabled while unresolved', $('#next-button').disabled === true);
+      check('wrong move is blocked with fresh effect', stage().dataset.outcome === 'blocked' && stage().classList.contains('fresh') && text('.fx').includes('Blocked!'));
+      check('blocked caption names the move; health stays full', caption().includes('Your All-Clear Ward was blocked!') && text('.hp-label') === 'HP 100', caption());
 
       await click('#hint-button');
       check('hint shows the method first', text('.help-panel').includes('first two octets') && !text('.help-panel').includes('Worked step'));
       check('hint recorded as assistance', statusBar().includes('Help used: Method hint'), statusBar());
+      check('repaint without a new move does not replay effects', stage().dataset.outcome === 'blocked' && !stage().classList.contains('fresh'));
 
       await solve('no-lease');
+      check('correct move defeats the monster', stage().dataset.outcome === 'defeated' && stage().classList.contains('fresh') && text('.hp-label') === 'HP 0' && caption().includes('is defeated'), caption());
       check('correct answer counts as an attempt (2)', statusBar().includes('Attempts: 2'), statusBar());
       check('focus moves to Next after solving', focused() === 'next-button', focused());
       check('Submit disabled after solving', $('#submit-button').disabled === true);
@@ -106,6 +122,8 @@
       await click('#next-button');
       check('L1R2 opens', heading().includes('The Suspicious Sprite'), heading());
       check('explanation cleared for the new ticket', explanation() === '', explanation());
+      check('second battle is a boss', text('.boss-tag') === 'Boss' && stage().classList.contains('is-boss') && caption().includes('(boss)'));
+      check('new battle starts ready, full health', stage().dataset.outcome === 'ready' && text('.hp-label') === 'HP 100');
       await choose('no-lease');
       await submit();
       check('L1R2 wrong: unfamiliar is not broken', explanation().includes('Only 169.254.x.x means self-assigned'), explanation());
@@ -116,8 +134,16 @@
       await click('#next-button');
       check('level summary shows promotion', text('.promotion').includes('NOC Engineer (T2)'), text('.promotion'));
       check('level summary lists attempts and help separately', text('.summary-table').includes('Method hint') && text('.summary-table').includes('2'));
+      check('level summary shows hero in T2 gear', $('.victory-hero svg').dataset.tier === '2' && !!$('.victory-hero .gear-headset') && !$('.victory-hero .gear-cape'));
+      check('header portrait upgraded to T2', $('#rank-portrait svg').dataset.tier === '2');
       await click('#continue-button');
       check('Level 2 briefing', heading() === 'Level 2: The Walled Towns', heading());
+      const mapItems = () => Array.from(doc().querySelectorAll('.map-item')).map((li) => li.textContent.trim());
+      check('map: L1 cleared, L2 you are here, L3 locked', JSON.stringify(mapItems()) === JSON.stringify([
+        'Help Desk Gate (Level 1): Cleared',
+        'Walled Towns (Level 2): You are here',
+        'BGP Citadel (Level 3): Locked',
+      ]), JSON.stringify(mapItems()));
 
       // Level 2 — subnet lesson and ruler.
       await click('#start-button');
@@ -142,6 +168,9 @@
       await click('#start-button');
       check('L3R1 path table shown', text('.path-table').includes('64502 64520 64510 (3)'), text('.path-table'));
       check('L3 choices are paths', !!$('#choice-A') && !!$('#choice-B') && !$('#choice-no-lease'));
+      check('L3 path moves are named', text('.moves').includes('Follow Path A') && text('.moves').includes('Path B via ISP-B (198.51.100.5)'), text('.moves'));
+      check('L3 scene is the BGP Citadel', stage().classList.contains('scene-bgp-citadel'));
+      check('hero wears T3 cape in L3', $('.hero-slot svg').dataset.tier === '3' && !!$('.hero-slot .gear-cape'));
       await choose('A');
       await submit();
       check('L3R1 wrong A: local pref before AS path', explanation().includes('AS-path length is only checked after local preference'), explanation());
@@ -174,6 +203,8 @@
         'L3: The BGP Boss | 2 of 2 | 5 | 0 of 2',
       ]), JSON.stringify(rows));
       check('no XP shown', !doc().body.textContent.includes('XP'));
+      check('session summary: crowned hero', $('.victory-hero svg').dataset.tier === '4' && !!$('.victory-hero .gear-crown'));
+      check('session summary: every location cleared', Array.from(doc().querySelectorAll('.map-item')).every((li) => li.textContent.includes('Cleared')) && doc().querySelectorAll('.map-item').length === 3);
 
       // Restart: cancel then confirm.
       await click('#play-again-button');

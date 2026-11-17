@@ -1,25 +1,22 @@
 <!--
 Sync Impact Report
-- Version change: (unratified template) → 1.0.0
-- Source: StarterKit/CONSTITUTION.md (team-personalized C1–C7), mapped onto the
-  resolved constitution-template structure.
-- Modified principles: template placeholders PRINCIPLE_1..5 replaced; principle count
-  expanded from 5 to 7:
-  - [PRINCIPLE_1_NAME] → I. Technical Truth Is a Release Requirement (C1)
-  - [PRINCIPLE_2_NAME] → II. Every Round Teaches Through a Decision (C2)
-  - [PRINCIPLE_3_NAME] → III. Progress Is Honest and Retry Is Safe (C3)
-  - [PRINCIPLE_4_NAME] → IV. Access Is Part of the Core Game (C4)
-  - [PRINCIPLE_5_NAME] → V. Deterministic and Self-Contained First Version (C5)
-  - (new) VI. Content and Logic Are Reviewed Separately (C6)
-  - (new) VII. Done Is Demonstrated (C7)
-- Added sections: Scope & Technical Constraints; Development Workflow & Quality Gates
+- Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded guidance on presentation;
+  includes PATCH-level wording fixes)
+- Modified principles:
+  - II. Every Round Teaches Through a Decision: "Each level follows this learning sequence"
+    → "The game follows this learning sequence across its levels" (restores the team's
+    StarterKit C2 intent; resolves /speckit-analyze finding D1).
+  - III. Progress Is Honest and Retry Is Safe: added that monster health is presentation
+    only and a wrong move costs the player nothing.
+  - IV. Access Is Part of the Core Game: added that art is decorative and every battle
+    outcome is also stated in text.
+- Purpose: now states that the game is a graphical adventure (battle scenes, move selection,
+  a world map, a hero whose look changes with rank); "earns the experience" wording replaced
+  with rank promotion (resolves analysis finding F3).
+- Added sections: none. Scope & Technical Constraints gains an "Adventure presentation"
+  bullet, and the first-release budget records feature 002 as agreed follow-up scope.
 - Removed sections: none
-- Clarifications made while transcribing:
-  - "Follow examples from Adventure Quest" recorded as genre inspiration only
-    (browser-RPG progression); names, characters, art and assets must be original.
-  - Cisco CCNA/CCNP/CCIE named as the curriculum scope; authoritative sources
-    (RFCs, vendor documentation) remain the grading reference.
-- Templates: not modified by this command (they read the constitution at runtime).
+- Follow-up: specs/001 stays valid; specs/002-adventure-presentation adds the presentation.
 - Deferred TODOs: none.
 -->
 
@@ -28,10 +25,15 @@ Sync Impact Report
 **Purpose:** Network-Quest helps new network engineers practise real networking skills by
 solving the tickets and problems they would meet along their career, from basic Wi-Fi and
 addressing questions on the service desk up to traffic-engineering decisions at network
-architect level. Each level simulates the questions of one career stage; answering enough of
-them correctly earns the experience needed to "level up" to the next stage. The game takes
-its progression style (ranks, experience, level-ups, ticket "monsters") from classic browser
-RPGs as genre inspiration only: all names, characters, art, and assets MUST be original.
+architect level. Each level simulates the questions of one career stage; resolving its
+tickets promotes the player to the next stage. The game is a graphical adventure:
+- the hero, NetworkSerf, faces each ticket monster in a battle scene;
+- the player chooses a move (their answer) and watches it land or get blocked;
+- levels are places on a map of Networklandia;
+- every promotion changes the hero's look.
+
+It takes this style from classic browser RPGs as genre inspiration only: all names,
+characters, art, and assets MUST be original.
 
 ## Core Principles
 
@@ -61,7 +63,7 @@ the product.
   answer MUST be visible.
 - A wrong answer MUST explain the specific mistake and give a useful next step. A correct
   answer MUST explain why it works.
-- Each level follows this learning sequence:
+- The game follows this learning sequence across its levels:
   1. **Foundation:** recognise and recall the concept through a short, direct ticket, with a
      full explanation after every answer.
   2. **Application:** diagnose a realistic user ticket by reading the symptoms and values
@@ -84,7 +86,8 @@ wrong, not from reading.
 - Empty or malformed submissions MUST give input guidance without counting as a wrong attempt.
 - Repeated Submit actions MUST NOT award progress (or experience) twice.
 - The first version has no lives, countdown, or speed bonus. Hints and retries carry no
-  penalty.
+  penalty. Monster health is presentation only: one correct move defeats the monster, and a
+  wrong move is blocked without costing the player anything.
 - Completed rounds, attempts, and assistance MUST be shown separately; completion is not
   proof of independent mastery.
 - The specification MUST state exactly what advances a round, finishes a level, and resets a
@@ -101,7 +104,8 @@ silently inflated.
 - All core actions MUST be usable by keyboard, with visible focus, readable labels, and an
   understandable order.
 - Success and failure MUST be conveyed in text as well as colour.
-- Essential diagrams MUST have a text equivalent.
+- Essential diagrams MUST have a text equivalent. Decorative art (characters, scenes, effects)
+  is hidden from assistive technology, and every battle outcome is also stated in text.
 - Reduced-motion preferences MUST be respected; animation MUST NOT delay the availability of
   feedback or controls.
 - The challenge MUST stay usable on a typical laptop and in a narrow browser window. Dense
@@ -162,9 +166,13 @@ playthrough, and a README another attendee can follow.
 
 ## Scope & Technical Constraints
 
-- **First-release budget:** one core mechanic, three short levels, one browser, built within
-  a 60-minute workshop build block. This budget changes only by updating the agreed scope
-  (see Governance).
+- **First-release budget:** one core mechanic and three short levels in one browser. The
+  teaching core (feature 001) was built within a 60-minute workshop block. The adventure
+  presentation (feature 002) is agreed follow-up scope for the same release. This budget
+  changes only by updating the agreed scope (see Governance).
+- **Adventure presentation:** battle scenes, characters, effects, and the world map are drawn
+  with inline SVG and CSS in the project's own files: no image downloads, web fonts, or audio.
+  The presentation only shows the evaluator's result; it never decides it (Principle I).
 - **Runtime:** static files only (semantic HTML, CSS, native JavaScript modules) served over
   HTTP; no framework, bundler, backend, persistence service, or runtime model unless a
   constitution amendment and plan update record the dependency, its version, loading
@@ -201,4 +209,4 @@ playthrough, and a README another attendee can follow.
 - **Compliance review:** every plan's Constitution Check and every analysis pass verifies
   compliance; the README verification section is the record of evidence.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17
+**Version**: 1.1.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-17
