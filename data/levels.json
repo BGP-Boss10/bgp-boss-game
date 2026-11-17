@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "diagnoses": [
+    { "id": "no-lease", "label": "No DHCP lease: the host self-assigned a 169.254.x.x address" },
+    { "id": "gateway-off-subnet", "label": "Default gateway is outside the host's subnet" },
+    { "id": "config-valid", "label": "Host IP settings are valid; escalate to the next check" }
+  ],
+  "sources": [
+    {
+      "id": "rfc3927",
+      "title": "RFC 3927: Dynamic Configuration of IPv4 Link-Local Addresses",
+      "url": "https://www.rfc-editor.org/rfc/rfc3927#section-2.1",
+      "section": "§2.1 Link-Local Address Selection",
+      "claim": "169.254/16 is registered for IPv4 link-local addresses; a host that needs one picks an address in 169.254.1.0–169.254.254.255 for itself."
+    },
+    {
+      "id": "rfc1122",
+      "title": "RFC 1122: Requirements for Internet Hosts — Communication Layers",
+      "url": "https://www.rfc-editor.org/rfc/rfc1122#section-3.3.1",
+      "section": "§3.3.1 Routing Outbound Datagrams and §3.3.1.1 Local/Remote Decision",
+      "claim": "A host compares address bits under its mask to decide whether a destination is on a connected network; anything else has to be routed to a gateway on a connected network."
+    },
+    {
+      "id": "rfc4632",
+      "title": "RFC 4632: Classless Inter-domain Routing (CIDR)",
+      "url": "https://www.rfc-editor.org/rfc/rfc4632#section-3.1",
+      "section": "§3.1 Basic Concept and Prefix Notation",
+      "claim": "Prefix (/n) notation and how the network portion of an address is determined by the mask."
+    },
+    {
+      "id": "rfc1918",
+      "title": "RFC 1918: Address Allocation for Private Internets",
+      "url": "https://www.rfc-editor.org/rfc/rfc1918#section-3",
+      "section": "§3 Private Address Space",
+      "claim": "10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 are private address ranges."
+    },
+    {
+      "id": "rfc4271-attributes",
+      "title": "RFC 4271: A Border Gateway Protocol 4 (BGP-4)",
+      "url": "https://www.rfc-editor.org/rfc/rfc4271#section-5.1",
+      "section": "§5.1.1 ORIGIN, §5.1.2 AS_PATH, §5.1.4 MULTI_EXIT_DISC, §5.1.5 LOCAL_PREF",
+      "claim": "Definitions of the ORIGIN, AS_PATH, MULTI_EXIT_DISC and LOCAL_PREF path attributes; a higher LOCAL_PREF is preferred."
+    },
+    {
+      "id": "rfc4271-decision",
+      "title": "RFC 4271: A Border Gateway Protocol 4 (BGP-4)",
+      "url": "https://www.rfc-editor.org/rfc/rfc4271#section-9.1.2.2",
+      "section": "§9.1.1 Phase 1 and §9.1.2.2 Breaking Ties (Phase 2)",
+      "claim": "Routes are ranked by degree of preference (LOCAL_PREF for internal routes, otherwise set by local policy); ties are then broken by fewest AS numbers in AS_PATH, lowest ORIGIN, and lowest MULTI_EXIT_DISC, which is only comparable between routes from the same neighbouring AS."
+    },
+    {
+      "id": "cisco-bestpath",
+      "title": "Cisco: Select BGP Best-path Algorithm",
+      "url": "https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/13753-25.html",
+      "section": "How the Best Path Algorithm Works, steps 1–2",
+      "claim": "Cisco IOS first prefers the highest WEIGHT (a Cisco-specific value local to the router), then the highest LOCAL_PREF; MEDs are compared only if the first AS in the AS_SEQUENCE is the same."
+    },
+    {
+      "id": "rfc5737",
+      "title": "RFC 5737: IPv4 Address Blocks Reserved for Documentation",
+      "url": "https://www.rfc-editor.org/rfc/rfc5737#section-3",
+      "section": "§3 Documentation Address Blocks",
+      "claim": "198.51.100.0/24 and 203.0.113.0/24 are reserved for use in documentation and examples."
+    },
+    {
+      "id": "rfc6996",
+      "title": "RFC 6996: Autonomous System (AS) Reservation for Private Use",
+      "url": "https://www.rfc-editor.org/rfc/rfc6996#section-5",
+      "section": "§5 IANA Considerations",
+      "claim": "AS numbers 64512–65534 are reserved for private use."
+    }
+  ],
+  "levels": [
+    {
+      "id": "L1",
+      "title": "The Help Desk Gate",
+      "rule": "host-config",
+      "rank": "Service Desk (T1)",
+      "promotesTo": "NOC Engineer (T2)",
+      "phase": "foundation",
+      "outcome": "LO1",
+      "briefing": {
+        "text": "Welcome to the Networklandia Service Desk, NetworkSerf. Every device needs three settings to talk beyond its own desk: an IPv4 address (who it is), a subnet mask (which addresses are its neighbours), and a default gateway (the door to everywhere else). Most hosts get all three from a DHCP server, which lends out an address on a time-limited lease. If no DHCP server answers, the host gives itself an address from 169.254.0.0/16 — any address starting 169.254. That self-assigned address only reaches devices on the same link, so it comes with no gateway and can't reach the wider network. Addresses in 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 are private ranges that DHCP servers hand out every day: unfamiliar is not the same as broken.",
+        "workedExample": "A laptop shows IPv4 169.254.200.15, mask 255.255.0.0, default gateway (none). The address starts with 169.254, so the laptop assigned it to itself: DHCP never answered. A second laptop shows 192.168.50.23, mask 255.255.255.0, gateway 192.168.50.1. That is an ordinary private address from DHCP, and its gateway sits in the same 192.168.50.0/24 network.",
+        "simplifications": "In this level the network link is always up and the values shown are accurate and complete. The DHCP message exchange, lease timers and renewal are not modelled, and only IPv4 is covered.",
+        "sourceIds": ["rfc3927", "rfc1918", "rfc1122"]
+      },
+      "rounds": [
+        {
+          "id": "L1R1",
+          "monster": "The Lonely Link Imp",
+          "ticket": "My laptop says it's connected, but I can't open any websites or reach the file share.",
+          "host": { "ip": "169.254.33.7", "mask": "255.255.0.0", "gateway": null },
+          "hints": {
+            "method": "Look at the first two octets of the IPv4 address. Is it in a range a DHCP server hands out, or the range a host picks for itself?",
+            "workedStep": "169.254.33.7 starts with 169.254, the self-assigned range 169.254.0.0/16, and there is no default gateway. Which diagnosis describes a host that never got a lease?"
+          },
+          "solution": "169.254.33.7 is in 169.254.0.0/16, the range a host uses when no DHCP server answers. The diagnosis is \"No DHCP lease\": the laptop assigned itself an address, which is why it has no gateway and can't reach anything beyond its own link.",
+          "feedback": {
+            "correct": "Correct. 169.254.33.7 is in 169.254.0.0/16, the self-assigned range. The laptop asked for a DHCP lease, nobody answered, so it gave itself an address that only works on its own link: no gateway, no websites, no file share.",
+            "config-valid/no-lease": "Not quite. Having an address isn't the same as having a lease. 169.254.x.x is what a host gives itself when DHCP doesn't answer. Look again at the first two octets: 169.254.",
+            "gateway-off-subnet/no-lease": "Not quite. There's no gateway to be outside the subnet: the gateway is blank. Look at the address itself: 169.254.33.7 starts with 169.254, which tells you DHCP never answered."
+          },
+          "sourceIds": ["rfc3927"],
+          "authorExpects": "no-lease"
+        },
+        {
+          "id": "L1R2",
+          "monster": "The Suspicious Sprite",
+          "ticket": "My PC shows the address 10.20.30.44. That's nothing like the 192.168 address I have at home. Is something broken?",
+          "host": { "ip": "10.20.30.44", "mask": "255.255.255.0", "gateway": "10.20.30.1" },
+          "hints": {
+            "method": "Is the address in the self-assigned range (169.254.x.x)? If not, check whether the gateway is in the same network as the host.",
+            "workedStep": "10.20.30.44 is not 169.254.x.x. With mask 255.255.255.0 (/24), the host's network is 10.20.30.0, and the gateway 10.20.30.1 is in 10.20.30.0 too."
+          },
+          "solution": "10.20.30.44 is a private address (10.0.0.0/8) of the kind DHCP servers assign every day, and the gateway 10.20.30.1 is in the same 10.20.30.0/24 network. The settings are valid, so the diagnosis is \"Host IP settings are valid; escalate to the next check\".",
+          "feedback": {
+            "correct": "Correct. 10.20.30.44 is in 10.0.0.0/8, a private range that DHCP servers assign all the time, and with a /{prefix} mask the host and the gateway 10.20.30.1 are both in {hostNetwork}/{prefix}. The settings are fine; if something still seems wrong, escalate to the next check.",
+            "no-lease/config-valid": "Not quite. Only 169.254.x.x means self-assigned. 10.20.30.44 is a normal private address from DHCP. An unfamiliar address isn't a broken one.",
+            "gateway-off-subnet/config-valid": "Not quite. With mask 255.255.255.0 (/{prefix}), the host is in {hostNetwork} and the gateway is in {gatewayNetwork}: the same network. Compare those two network addresses again."
+          },
+          "sourceIds": ["rfc1918", "rfc1122"],
+          "authorExpects": "config-valid"
+        }
+      ]
+    },
+    {
+      "id": "L2",
+      "title": "The Walled Towns",
+      "rule": "host-config",
+      "rank": "NOC Engineer (T2)",
+      "promotesTo": "Network Engineer (T3)",
+      "phase": "application",
+      "outcome": "LO2",
+      "briefing": {
+        "text": "As a NOC Engineer you read the mask, not just the address. The mask says how many leading bits of an address name the network: /25 means the first 25 bits. To find a host's network, AND each octet of the address with the matching octet of the mask: 255 keeps the octet, 0 clears it, and anything in between keeps only some of its bits. Two addresses are in the same subnet only if they AND to the same network address. Think of a subnet as a walled town and the default gateway as its gate: the gate must sit inside the walls, because a host only sends traffic directly to addresses in its own subnet. Matching the first three octets proves the same subnet only when the mask is /24.",
+        "workedExample": "Host 10.1.1.70 with mask 255.255.255.192 (/26) and gateway 10.1.1.65. 70 AND 192 = 64 and 65 AND 192 = 64, so both are in 10.1.1.64/26 (10.1.1.64–10.1.1.127): the gate is inside the walls. If the gateway were 10.1.1.1 instead, 1 AND 192 = 0 puts it in 10.1.1.0/26, outside the host's town.",
+        "simplifications": "Masks are contiguous and between /8 and /30. Each host has one address and one gateway. Routing beyond the default gateway, ARP, and /31 or /32 networks are not modelled.",
+        "sourceIds": ["rfc1122", "rfc4632"]
+      },
+      "rounds": [
+        {
+          "id": "L2R1",
+          "monster": "The Half-Wall Goblin",
+          "ticket": "I can print to the printer next to me, but nothing else works.",
+          "host": { "ip": "192.168.1.130", "mask": "255.255.255.128", "gateway": "192.168.1.1" },
+          "hints": {
+            "method": "Matching octets aren't enough unless the mask is /24. AND the host address and the gateway with the mask, then compare the two network addresses.",
+            "workedStep": "The mask is 255.255.255.128 (/25), so only the last octet needs work: 130 AND 128 = 128, and 1 AND 128 = 0. Are 192.168.1.128 and 192.168.1.0 the same network?"
+          },
+          "solution": "130 AND 128 = 128, so the host is in 192.168.1.128/25 (192.168.1.128–192.168.1.255). 1 AND 128 = 0, so the gateway is in 192.168.1.0/25. The gateway is outside the host's subnet, so the diagnosis is \"Default gateway is outside the host's subnet\". The printer works because it shares the host's subnet.",
+          "feedback": {
+            "correct": "Correct. 130 AND 128 = 128, so the host is in {hostNetwork}/{prefix}. 1 AND 128 = 0, so the gateway is in {gatewayNetwork}/{prefix}. The host can't reach its gateway directly, so traffic to other networks goes nowhere. The printer works because it shares the host's subnet. Fix: use a gateway in .129–.254, or correct the mask.",
+            "config-valid/gateway-off-subnet": "Not quite. Matching the first three octets proves the same subnet only when the mask is /24, and this mask is /{prefix}. Next step: AND the last octet of the host (130) and of the gateway (1) with 128, then compare the results.",
+            "no-lease/gateway-off-subnet": "Not quite. 192.168.1.130 isn't a 169.254.x.x address, so DHCP did hand out a lease. The problem is elsewhere: compare the host's network and the gateway's network under the /{prefix} mask."
+          },
+          "sourceIds": ["rfc1122", "rfc4632"],
+          "authorExpects": "gateway-off-subnet"
+        },
+        {
+          "id": "L2R2",
+          "monster": "The Third-Octet Troll",
+          "ticket": "My PC is 172.16.4.200 but the gateway is 172.16.5.1. Different numbers! Someone must have made a typo. Can you fix it?",
+          "host": { "ip": "172.16.4.200", "mask": "255.255.252.0", "gateway": "172.16.5.1" },
+          "hints": {
+            "method": "With a /22 mask, the third octet is partly host bits. AND the third octet of each address with the third octet of the mask (252) and compare.",
+            "workedStep": "4 AND 252 = 4 and 5 AND 252 = 4. Both addresses land in 172.16.4.0/22, which runs from 172.16.4.0 to 172.16.7.255."
+          },
+          "solution": "With mask 255.255.252.0 (/22), host 172.16.4.200 and gateway 172.16.5.1 both AND to 172.16.4.0, so the gateway is inside the host's subnet (172.16.4.0–172.16.7.255). Nothing is wrong: the diagnosis is \"Host IP settings are valid; escalate to the next check\".",
+          "feedback": {
+            "correct": "Correct. With /{prefix}, the third octet is partly host bits: 4 AND 252 = 4 and 5 AND 252 = 4, so both addresses are in {hostNetwork}/{prefix} ({hostRange}). The gate is inside the walls: no typo here.",
+            "gateway-off-subnet/config-valid": "Not quite. With /22, the third octet is part of the host range. 4 AND 252 = 4 and 5 AND 252 = 4, so both are in the same network.",
+            "no-lease/config-valid": "Not quite. 172.16.4.200 isn't a 169.254.x.x address; it's a private address handed out by DHCP. Check the gateway against the /{prefix} mask instead."
+          },
+          "sourceIds": ["rfc4632", "rfc1918"],
+          "authorExpects": "config-valid"
+        }
+      ]
+    },
+    {
+      "id": "L3",
+      "title": "The BGP Boss",
+      "rule": "bgp-best-path",
+      "rank": "Network Engineer (T3)",
+      "promotesTo": "Senior Network Engineer (T4)",
+      "phase": "transfer",
+      "outcome": "LO3",
+      "briefing": {
+        "text": "Promoted to Network Engineer, you now face the BGP Boss. The internet is built from autonomous systems (ASes): networks run by one organisation, each with an AS number. BGP is how they tell each other which prefixes (blocks of addresses such as 203.0.113.0/24) they can reach. When your edge router hears about the same prefix from more than one neighbour, it holds several paths and must pick exactly one. Each path carries attributes, and the router compares them in a fixed order, stopping at the first one that separates the paths: (1) highest weight, a Cisco-only value set on this router; (2) highest local preference, set by your own network's policy; (3) shortest AS path, the fewest AS numbers to cross; (4) lowest origin, where IGP beats EGP and EGP beats incomplete; (5) lowest MED, a neighbour's hint about which link to use, compared only between paths from the same neighbouring AS (the first AS in the path). The first difference wins; a later attribute never overrides an earlier one.",
+        "workedExample": "Two paths to 192.0.2.0/24. Path X: weight 0, local preference 150, AS path 64601 64700 (length 2). Path Y: weight 0, local preference 150, AS path 64602 (length 1). Weights tie and local preferences tie, so AS-path length decides: Y's is shorter, so the router picks Y. Origin and MED are never looked at.",
+        "simplifications": "One router chooses among two or three valid, usable paths to one prefix, none of them created by this router. Only weight, local preference, AS-path length, origin and MED are compared. Real routers continue with more tie-breakers (external over internal BGP, distance to the next hop, path age, router ID, neighbour address) and options such as always-compare-MED; every round here is built so they are never needed. Weight is a Cisco IOS feature, not part of the BGP standard. Addresses and AS numbers come from ranges reserved for documentation and private use.",
+        "sourceIds": ["rfc4271-attributes", "rfc4271-decision", "cisco-bestpath", "rfc5737", "rfc6996"]
+      },
+      "rounds": [
+        {
+          "id": "L3R1",
+          "monster": "The Shortcut Wraith",
+          "ticket": "We pay for ISP-A as our primary link, but traffic to our partner at 203.0.113.0/24 goes out through ISP-B, the longer way round. Is the router broken? Which path is it actually choosing?",
+          "prefix": "203.0.113.0/24",
+          "paths": [
+            { "id": "A", "label": "Path A via ISP-A (198.51.100.1)", "nextHop": "198.51.100.1", "weight": 0, "localPref": 100, "asPath": [64501, 64510], "origin": "igp", "med": 0 },
+            { "id": "B", "label": "Path B via ISP-B (198.51.100.5)", "nextHop": "198.51.100.5", "weight": 0, "localPref": 200, "asPath": [64502, 64520, 64510], "origin": "igp", "med": 0 }
+          ],
+          "hints": {
+            "method": "Check the attributes in order (weight, then local preference, then AS-path length) and stop at the first one that differs.",
+            "workedStep": "Weight: A 0, B 0, a tie. Local preference: A 100, B 200. They differ, so this step decides, and higher wins."
+          },
+          "solution": "Weights tie at 0. Local preference is compared next: B has 200, A has 100, and higher wins, so the router selects Path B. AS-path length is never compared. The router isn't broken: your own policy gives ISP-B the higher local preference. To make ISP-A primary, give its path the higher local preference.",
+          "feedback": {
+            "correct": "Correct. Weights tie at 0, then local preference decides: Path B has 200 and Path A has 100, and higher wins. A's shorter AS path never gets a say. The router is doing what its policy says; to make ISP-A primary, raise the local preference on ISP-A's path.",
+            "A/lost-local-pref": "Not quite. A has the shorter AS path, but AS-path length is only checked after local preference. B's local preference is 200 versus A's 100, so B wins at that step."
+          },
+          "sourceIds": ["rfc4271-decision", "rfc4271-attributes", "cisco-bestpath"],
+          "authorExpects": "B"
+        },
+        {
+          "id": "L3R2",
+          "monster": "The Low-MED Mimic",
+          "ticket": "Three paths to our partner network 203.0.113.0/24 are in the BGP table. The one through ISP-B has a MED of 0, the lowest of all, so surely that's the one in use? Monitoring says otherwise. Which path does the router pick?",
+          "prefix": "203.0.113.0/24",
+          "paths": [
+            { "id": "A", "label": "Path A via ISP-A link 1 (198.51.100.1)", "nextHop": "198.51.100.1", "weight": 0, "localPref": 100, "asPath": [64501, 64510], "origin": "incomplete", "med": 10 },
+            { "id": "B", "label": "Path B via ISP-A link 2 (198.51.100.9)", "nextHop": "198.51.100.9", "weight": 0, "localPref": 100, "asPath": [64501, 64510], "origin": "igp", "med": 50 },
+            { "id": "C", "label": "Path C via ISP-B (198.51.100.5)", "nextHop": "198.51.100.5", "weight": 0, "localPref": 100, "asPath": [64502, 64530, 64510], "origin": "igp", "med": 0 }
+          ],
+          "hints": {
+            "method": "Work through the attributes in order and cross off paths as soon as they lose. MED only counts if everything before it ties.",
+            "workedStep": "Weight and local preference tie for all three. AS-path length: A 2, B 2, C 3, so C is out. Now compare A and B on origin: which is lower, IGP or incomplete?"
+          },
+          "solution": "Weight (0) and local preference (100) tie. AS-path length: A and B have 2, C has 3, so C drops out. Origin: B is IGP and A is incomplete; IGP is lower, so B wins. MED is never reached, so C's MED of 0 and A's MED of 10 don't matter. The router selects Path B.",
+          "feedback": {
+            "correct": "Correct. Weight and local preference tie. C drops out on AS-path length (3 versus 2). Between A and B, origin decides: IGP beats incomplete, so B wins. MED is never reached, so the low MEDs on A and C don't matter.",
+            "C/lost-as-path": "Not quite. C has the lowest MED, but it drops out earlier: its AS path is 3 long versus 2 for A and B. MED is only compared if everything before it ties.",
+            "A/lost-origin": "Not quite. A beats B on MED, but origin is compared first: B's origin is IGP and A's is incomplete, so B wins before MED is reached."
+          },
+          "sourceIds": ["rfc4271-decision", "rfc4271-attributes"],
+          "authorExpects": "B"
+        }
+      ]
+    }
+  ]
+}

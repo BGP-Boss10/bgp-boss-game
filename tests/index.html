@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network-Quest Tests</title>
+  <style>
+    :root { color-scheme: light dark; --ok: #1a7f37; --bad: #b42318; }
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 60rem; padding: 1rem; }
+    #summary { font-size: 1.25rem; font-weight: 700; }
+    #summary[data-state="pass"] { color: var(--ok); }
+    #summary[data-state="fail"] { color: var(--bad); }
+    li { margin: 0.25rem 0; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>Network-Quest tests</h1>
+  <p id="summary" role="status" data-state="running">Running…</p>
+  <h2>Failures</h2>
+  <ul id="failures"></ul>
+  <script type="module">
+    import { run } from './runner.js';
+
+    const modules = [
+      './ipv4.test.js',
+      './content.test.js',
+      './rule-host.test.js',
+      './state.test.js',
+      './rule-bgp.test.js',
+    ];
+
+    const summary = document.getElementById('summary');
+    const list = document.getElementById('failures');
+
+    try {
+      for (const m of modules) await import(m);
+      const { total, failed } = await run();
+      const passed = total - failed.filter((f) => f.id !== 'NO-TESTS').length;
+      const ok = failed.length === 0;
+      summary.dataset.state = ok ? 'pass' : 'fail';
+      summary.textContent = `${ok ? 'PASS' : 'FAIL'}: ${passed} of ${total} tests passed, ${failed.length} failed.`;
+      for (const f of failed) {
+        const li = document.createElement('li');
+        li.innerHTML = '<strong></strong>: <code></code>';
+        li.querySelector('strong').textContent = f.id;
+        li.querySelector('code').textContent = f.message;
+        list.append(li);
+      }
+      if (ok) list.innerHTML = '<li>None.</li>';
+    } catch (error) {
+      summary.dataset.state = 'fail';
+      summary.textContent = `FAIL: the test page could not run (${error.message}).`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network-Quest Playthrough</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 70rem; padding: 1rem; }
+    #summary { font-size: 1.25rem; font-weight: 700; }
+    #summary[data-state="pass"] { color: #1a7f37; }
+    #summary[data-state="fail"] { color: #b42318; }
+    iframe { width: 100%; height: 40rem; border: 1px solid #888; }
+    .fail { color: #b42318; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Network-Quest automated playthrough</h1>
+  <p>Drives the real game (in the frame below) from the first briefing to the session summary and Restart,
+     checking feedback, counters, focus and the live region. It complements, not replaces, the manual
+     keyboard-only check.</p>
+  <p id="summary" role="status" data-state="running">Running…</p>
+  <ol id="steps"></ol>
+  <iframe id="game" title="Game under test" src="../index.html"></iframe>
+  <script type="module">
+    const frame = document.getElementById('game');
+    const steps = document.getElementById('steps');
+    const summary = document.getElementById('summary');
+    let failures = 0;
+
+    const doc = () => frame.contentDocument;
+    const $ = (sel) => doc().querySelector(sel);
+    const text = (sel) => ($(sel) ? $(sel).textContent.replace(/\s+/g, ' ').trim() : '');
+    const tick = () => new Promise((r) => setTimeout(r, 20));
+
+    async function waitFor(fn, label, timeout = 3000) {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        try { if (fn()) return; } catch { /* keep waiting */ }
+        await tick();
+      }
+      throw new Error(`timed out waiting for ${label}`);
+    }
+
+    function check(label, condition, detail = '') {
+      const li = document.createElement('li');
+      li.textContent = `${condition ? 'ok' : 'FAIL'} — ${label}${!condition && detail ? ` (${detail})` : ''}`;
+      if (!condition) { li.className = 'fail'; failures += 1; }
+      steps.append(li);
+    }
+
+    async function click(sel) {
+      const el = $(sel);
+      if (!el) throw new Error(`missing ${sel}`);
+      el.click();
+      await tick();
+    }
+
+    async function choose(id) { await click(`#choice-${id}`); }
+    async function submit() { $('#answer-form').requestSubmit(); await tick(); }
+    const explanation = () => text('#explanation');
+    const statusBar = () => text('.status-bar');
+    const heading = () => text('#view-heading');
+    const focused = () => doc().activeElement && doc().activeElement.id;
+
+    async function solve(answer) {
+      await choose(answer);
+      await submit();
+      check(`resolved with ${answer}`, explanation().includes('Resolved ✓'), explanation());
+    }
+
+    try {
+      await new Promise((r) => (frame.contentDocument && frame.contentDocument.readyState === 'complete' ? r() : frame.addEventListener('load', r, { once: true })));
+      await waitFor(() => $('#start-button'), 'first briefing');
+
+      // US1 — briefing first, then L1R1.
+      check('first view is the Level 1 briefing', heading() === 'Level 1: The Help Desk Gate', heading());
+      check('rank starts at Service Desk (T1)', text('#rank-title') === 'Service Desk (T1)');
+      await click('#start-button');
+      check('L1R1 opens and focus moves to its heading', heading().includes('The Lonely Link Imp') && focused() === 'view-heading', `${heading()} / ${focused()}`);
+      check('ipconfig shows mask with /prefix and no gateway', text('.ipconfig').includes('255.255.0.0 (/16)') && text('.ipconfig').includes('(none)'));
+
+      await submit();
+      check('empty submit gives guidance', explanation().includes('Choose one option, then Submit.'), explanation());
+      check('empty submit is not an attempt', statusBar().includes('Attempts: 0'), statusBar());
+
+      await choose('config-valid');
+      check('selection keeps focus on the chosen radio', focused() === 'choice-config-valid', focused());
+      await submit();
+      check('wrong answer stays open', explanation().includes('Still open ✗'), explanation());
+      check('wrong answer names the misconception', explanation().includes("Having an address isn't the same as having a lease"));
+      check('wrong answer counts one attempt', statusBar().includes('Attempts: 1'), statusBar());
+      check('Next disabled while unresolved', $('#next-button').disabled === true);
+
+      await click('#hint-button');
+      check('hint shows the method first', text('.help-panel').includes('first two octets') && !text('.help-panel').includes('Worked step'));
+      check('hint recorded as assistance', statusBar().includes('Help used: Method hint'), statusBar());
+
+      await solve('no-lease');
+      check('correct answer counts as an attempt (2)', statusBar().includes('Attempts: 2'), statusBar());
+      check('focus moves to Next after solving', focused() === 'next-button', focused());
+      check('Submit disabled after solving', $('#submit-button').disabled === true);
+      $('#answer-form').requestSubmit(); await tick();
+      check('repeated submit changes nothing', statusBar().includes('Attempts: 2'), statusBar());
+
+      await click('#next-button');
+      check('L1R2 opens', heading().includes('The Suspicious Sprite'), heading());
+      check('explanation cleared for the new ticket', explanation() === '', explanation());
+      await choose('no-lease');
+      await submit();
+      check('L1R2 wrong: unfamiliar is not broken', explanation().includes('Only 169.254.x.x means self-assigned'), explanation());
+      await solve('config-valid');
+      check('L1R2 explanation fills computed network', explanation().includes('10.20.30.0/24'), explanation());
+      check('rank promoted to NOC Engineer (T2)', text('#rank-title') === 'NOC Engineer (T2)', text('#rank-title'));
+
+      await click('#next-button');
+      check('level summary shows promotion', text('.promotion').includes('NOC Engineer (T2)'), text('.promotion'));
+      check('level summary lists attempts and help separately', text('.summary-table').includes('Method hint') && text('.summary-table').includes('2'));
+      await click('#continue-button');
+      check('Level 2 briefing', heading() === 'Level 2: The Walled Towns', heading());
+
+      // Level 2 — subnet lesson and ruler.
+      await click('#start-button');
+      check('L2R1 Half-Wall Goblin', heading().includes('The Half-Wall Goblin'), heading());
+      await choose('config-valid');
+      await submit();
+      check('L2R1 wrong feedback mentions /25', explanation().includes('this mask is /25'), explanation());
+      check('no ruler before solving (no answer given away)', !$('.ruler'));
+      await click('#solution-button');
+      check('solution recorded as assistance', statusBar().includes('Help used: Worked solution'), statusBar());
+      await solve('gateway-off-subnet');
+      check('ruler sentence: gateway outside', text('.ruler-text').startsWith('Host 192.168.1.130 is inside 192.168.1.128–192.168.1.255. Gateway 192.168.1.1 is outside 192.168.1.128–192.168.1.255'), text('.ruler-text'));
+      await click('#next-button');
+      await solve('config-valid');
+      check('L2R2 ruler: gateway inside /22', text('.ruler-text').includes('Gateway 172.16.5.1 is inside 172.16.4.0–172.16.7.255'), text('.ruler-text'));
+      check('L2R2 explanation shows range', explanation().includes('172.16.4.0–172.16.7.255'), explanation());
+      await click('#next-button');
+      await click('#continue-button');
+      check('Level 3 briefing: BGP Boss', heading() === 'Level 3: The BGP Boss', heading());
+
+      // Level 3 — BGP best path.
+      await click('#start-button');
+      check('L3R1 path table shown', text('.path-table').includes('64502 64520 64510 (3)'), text('.path-table'));
+      check('L3 choices are paths', !!$('#choice-A') && !!$('#choice-B') && !$('#choice-no-lease'));
+      await choose('A');
+      await submit();
+      check('L3R1 wrong A: local pref before AS path', explanation().includes('AS-path length is only checked after local preference'), explanation());
+      check('no trace before solving', !$('.trace'));
+      await solve('B');
+      check('L3R1 trace: local preference decides', text('.trace-list').includes('Local preference: A 100, B 200: A drops out, so Path B wins.'), text('.trace-list'));
+      await click('#next-button');
+      check('L3R2 Low-MED Mimic', heading().includes('The Low-MED Mimic'), heading());
+      await choose('C');
+      await submit();
+      check('L3R2 wrong C: dropped on AS-path length', explanation().includes('C has the lowest MED, but it drops out earlier'), explanation());
+      await choose('A');
+      await submit();
+      check('L3R2 wrong A: origin before MED', explanation().includes('origin is compared first'), explanation());
+      check('L3R2 attempts 2', statusBar().includes('Attempts: 2'), statusBar());
+      await solve('B');
+      const trace = text('.trace-list');
+      check('L3R2 trace: weight tie', trace.includes('Weight: A 0, B 0, C 0: a tie'), trace);
+      check('L3R2 trace: C out on AS path', trace.includes('AS-path length: A 2, B 2, C 3: C drops out.'), trace);
+      check('L3R2 trace: A out on origin, B wins', trace.includes('Origin: A incomplete, B IGP: A drops out, so Path B wins.'), trace);
+      await click('#next-button');
+      check('final level summary', text('.promotion').includes('Senior Network Engineer (T4)'), text('.promotion'));
+      await click('#continue-button');
+      check('session summary', heading() === 'Session summary', heading());
+      const rows = Array.from(doc().querySelectorAll('.summary-table tbody tr'))
+        .map((tr) => Array.from(tr.children).map((c) => c.textContent.trim()).join(' | '));
+      check('session summary per level figures', JSON.stringify(rows) === JSON.stringify([
+        'L1: The Help Desk Gate | 2 of 2 | 4 | 1 of 2',
+        'L2: The Walled Towns | 2 of 2 | 3 | 1 of 2',
+        'L3: The BGP Boss | 2 of 2 | 5 | 0 of 2',
+      ]), JSON.stringify(rows));
+      check('no XP shown', !doc().body.textContent.includes('XP'));
+
+      // Restart: cancel then confirm.
+      await click('#play-again-button');
+      check('restart asks for confirmation', $('#restart-dialog').open === true);
+      await click('#restart-cancel');
+      check('cancel keeps the session', $('#restart-dialog').open === false && heading() === 'Session summary');
+      check('cancel returns focus to Restart', focused() === 'restart-button', focused());
+      await click('#restart-button');
+      await click('#restart-confirm');
+      check('confirm returns to the first briefing', heading() === 'Level 1: The Help Desk Gate', heading());
+      check('rank reset', text('#rank-title') === 'Service Desk (T1)', text('#rank-title'));
+      check('focus on the new heading after restart', focused() === 'view-heading', focused());
+      await click('#start-button');
+      check('counters cleared after restart', statusBar().includes('Attempts: 0') && statusBar().includes('Help used: None'), statusBar());
+    } catch (error) {
+      check(`playthrough aborted: ${error.message}`, false);
+    }
+
+    const total = steps.children.length;
+    summary.dataset.state = failures === 0 ? 'pass' : 'fail';
+    summary.textContent = `${failures === 0 ? 'PASS' : 'FAIL'}: ${total - failures} of ${total} checks passed, ${failures} failed.`;
+  </script>
+</body>
+</html>

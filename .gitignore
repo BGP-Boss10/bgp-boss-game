@@ -1,0 +1,18 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# Logs and local environment
+*.log
+.env*
+
+# Python (local dev server only)
+__pycache__/
+*.pyc
+
+# Claude Code local loop state
+**/.claude/ralph-loop.local.md

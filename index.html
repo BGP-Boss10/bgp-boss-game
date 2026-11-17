@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network-Quest</title>
+  <meta name="description" content="Diagnose broken-network tickets and face the BGP Boss in Networklandia.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a class="skip-link" href="#view">Skip to the game</a>
+  <header class="site-header">
+    <div class="brand">
+      <h1>Network-Quest</h1>
+      <p class="tagline">Tickets of Networklandia</p>
+    </div>
+    <p class="rank" id="rank" aria-live="off">Rank: <strong id="rank-title">Service Desk (T1)</strong></p>
+    <button type="button" class="btn btn-quiet" id="restart-button" data-action="restart">Restart</button>
+  </header>
+
+  <main class="layout">
+    <div id="view" class="view" tabindex="-1">
+      <p>Loading tickets…</p>
+    </div>
+    <section class="explanation-wrap" aria-labelledby="explanation-heading">
+      <h2 id="explanation-heading" class="visually-hidden">Explanation</h2>
+      <div id="explanation" class="explanation" aria-live="polite" aria-atomic="true"></div>
+    </section>
+  </main>
+
+  <dialog id="restart-dialog" aria-labelledby="restart-title" aria-describedby="restart-desc">
+    <h2 id="restart-title">Restart the session?</h2>
+    <p id="restart-desc">This clears every resolved ticket, attempt and hint record and returns to the first briefing.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="restart-cancel" data-action="restart-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="restart-confirm" data-action="restart-confirm">Restart</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
